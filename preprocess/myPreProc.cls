@@ -75,31 +75,40 @@ Private Function linestep(tkLst)
         mSwStackLvl = mSwStackLvl + 1
         'eval cnd ->mCurCnd
         mCurCnd = evalCnd(tkLst, 3)
-        mCurSw = mCurSw And mCurCnd
+        parentSw = mCurCnd
+        mCurSw = mCurSw And parentSw
     Case tkIfdef
         'push ctx
         mSwStack(mSwStackLvl) = Array(mCurSw, mCurCnd)
         mSwStackLvl = mSwStackLvl + 1
         'eval cnd ->mCurCnd
         mCurCnd = mDefined.Exists(tkLst(3).mTxt)
-        mCurSw = mCurSw And mCurCnd
+        parentSw = mCurCnd
+        mCurSw = mCurSw And parentSw
     Case tkIfndef
         'push ctx
         mSwStack(mSwStackLvl) = Array(mCurSw, mCurCnd)
         mSwStackLvl = mSwStackLvl + 1
         'eval cnd ->mCurCnd
         mCurCnd = Not mDefined.Exists(tkLst(3).mTxt)
-        mCurSw = mCurSw And mCurCnd
+        parentSw = mCurCnd
+        mCurSw = mCurSw And parentSw
     Case tkElif
         If Not mCurCnd Then
             'eval cnd ->mCurCnd
             mCurCnd = evalCnd(tkLst, 3)
-            mCurSw = mCurSw And mCurCnd
+            parentSw = mSwStack(mSwStackLvl - 1)(0)
+            mCurSw = mCurSw And parentSw
         Else
             mCurSw = False
         End If
     Case tkElse
-        mCurSw = mCurSw And (Not mCurCnd)
+        If Not mCurCnd Then
+            parentSw = mSwStack(mSwStackLvl - 1)(0)
+            mCurSw = parentSw
+        Else
+            mCurSw = False
+        End If
     Case tkEndif
         'pop ctx
         mSwStackLvl = mSwStackLvl - 1
@@ -143,10 +152,76 @@ Private Function evalCnd(tkLst, iStart)
                 opLst.Add tkLBR
             Case tkRBR
                 'reduce to (
+                reduce valLst, opLst, tkRBR
+            Case tkNot, tkAnd, tkOr
+                reduce valLst, opLst, tk.mType
+                opLst.Add tk.mType
         End Select
     Next
+    reduce valLst, opLst, tkRBR
+    assert (valLst.Count = 1)
     evalCnd = valLst(1)
 End Function
+Private Function reduce(ByRef valLst, ByRef opLst, _
+Optional ByVal topOp = tkInvalid)
+    stopTk = tkInvalid
+
+    If topOp = tkInvalid Then
+        'pop
+        topOp = opLst(opLst.Count)
+        opLst.Remove (opLst.Count)
+    End If
+    
+    If topOp = tkRBR Then
+        stopTk = tkLBR
+    End If
+    
+    For i = opLst.Count To 1 Step -1
+        curOp = opLst(opLst.Count)
+        If stopTk = tkInvalid Then
+            If curOp = tkLBR Then
+                Exit For
+            ElseIf topOp < curOp Then
+                Exit For
+            End If
+        Else
+            '()
+            If stopTk = curOp Then
+                opLst.Remove opLst.Count
+                Exit For
+            End If
+        End If
+        
+        'pop top oper
+        opLst.Remove opLst.Count
+        'calc
+        Select Case curOp
+        Case tkNot
+            'pop
+            tVal = valLst(valLst.Count)
+            valLst.Remove (valLst.Count)
+            'push
+            valLst.Add (Not tVal)
+        Case tkAnd
+            'pop
+            tVal = valLst(valLst.Count)
+            valLst.Remove (valLst.Count)
+            tVal2 = valLst(valLst.Count)
+            valLst.Remove (valLst.Count)
+            'push
+            valLst.Add (tVal And tVal2)
+        Case tkOr
+            'pop
+            tVal = valLst(valLst.Count)
+            valLst.Remove (valLst.Count)
+            tVal2 = valLst(valLst.Count)
+            valLst.Remove (valLst.Count)
+            'push
+            valLst.Add (tVal Or tVal2)
+        End Select
+    Next
+End Function
+
 Private Function readInclude(zInc)
     Dim fso As New FileSystemObject
     Set tLst = New Collection
@@ -167,17 +242,25 @@ Private Function readFile(zFile)
     n = ts.Line
     ts.Close
     
+    
+    Dim reg2 As New RegExp
+    reg2.Pattern = "/\*.*\*/|//[^\r\n]*"
+    reg2.Global = True
+    reg2.MultiLine = True
+    
+    zTxt = reg2.Replace(zData, "")
     arr = Split(zData, vbCrLf)
     assert (UBound(arr) = n - 1)
     
     'remove empty/comment
     Dim tLine As myLineCode
+    
     Dim reg As New RegExp
-    reg.Pattern = "^(\s+|/\*.*\*/)*$"
+    reg.Pattern = "^[\s\t]*$"
+    
     lineNo = 1
     Set tLst = New Collection
     For Each zLine In arr
-        If zLine = "" Then GoTo lSkip
         If reg.Test(zLine) Then GoTo lSkip
         
         Set tLine = New myLineCode

@@ -3,6 +3,9 @@
 
 
 
+
+
+
 int gmode1;
 
 
@@ -13,7 +16,7 @@ int gmode1;
 
 
 
-
+int gone;
 
 
 

@@ -32,7 +32,7 @@ Enum eTokenType
     tkBitAnd
     tkBitXor
     tkBitNot
-    tkNOT
+    tkNot
     tkSharp
 
     tkRShift

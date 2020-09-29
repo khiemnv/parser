@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "option.h"
 
+#if (defined(X_SYS) || defined(Y_SYS))
+#include "xxx.h"
+#endif
 #define mode1
 #if defined(mode1)
 int gmode1;
