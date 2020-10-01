@@ -8,6 +8,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '2020-09-10:if/else parse
+'2020-10-01:empty case block
 Private Enum parseSts
     stsInit
     stsIf
@@ -190,6 +191,9 @@ Private Function stepSw(tk)
     Case stsCaseEnd
         If eTk = tkCase Then
             mCurSts = stsCase
+        ElseIf eTk = tkBreak Then
+            pushCtx
+            mCurSts = stsCaseBreak
         Else
             'push ctx
             pushCtx
