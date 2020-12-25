@@ -11,6 +11,7 @@ Sub preprocess()
     pp.RemoveSw zFile
     
     Dim tLine As myLineCode
+    nCmnt = 0
     
     Set ts = fso.CreateTextFile(zOut)
     i = 0
@@ -18,7 +19,14 @@ Sub preprocess()
         For i = i + 1 To tLine.mNo - 1
             ts.WriteLine ""
         Next
-        ts.WriteLine tLine.mTxt
+        If tLine.isComment Then
+            nCmnt = nCmnt + 1
+        End If
+        If bSkipInline And tLine.isCommnet Then
+            ts.WriteLine ""
+        Else
+            ts.WriteLine tLine.mTxt
+        End If
     Next
     ts.Close
 End Sub

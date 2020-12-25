@@ -13,7 +13,7 @@ Private mReg As RegExp
 Private Sub Class_Initialize()
     Set mDict = New Dictionary
     Set mReg = New RegExp
-    mReg.Pattern = ">>|<<|\+\+|\-\-|>=|=<|\|\||&&|==|!=|[=\(\);,\{\}\+\-\*\/%<>:\[\]&\^!\|~#]|\w+"
+    mReg.Pattern = ">>|<<|\+\+|\-\-|>=|<=|\|\||&&|==|!=|[=\(\);,\{\}\+\-\*\/%<>:\[\]&\^!\|~#]|\w+"
     
     mDict.Add "=", eTokenType.tkAssign
     mDict.Add ")", eTokenType.tkRBR
@@ -36,7 +36,7 @@ Private Sub Class_Initialize()
     mDict.Add "&", eTokenType.tkBitAnd
     mDict.Add "^", eTokenType.tkBitXor
     mDict.Add "~", eTokenType.tkBitNot
-    mDict.Add "!", eTokenType.tkNOT
+    mDict.Add "!", eTokenType.tkNot
     mDict.Add "#", eTokenType.tkSharp
 
     mDict.Add ">>", eTokenType.tkRShift
@@ -44,7 +44,7 @@ Private Sub Class_Initialize()
     mDict.Add "++", eTokenType.tkInc
     mDict.Add "--", eTokenType.tkDec
     mDict.Add ">=", eTokenType.tkGTE
-    mDict.Add "=<", eTokenType.tkLTE
+    mDict.Add "<=", eTokenType.tkLTE
     mDict.Add "||", eTokenType.tkOr
     mDict.Add "&&", eTokenType.tkAnd
     mDict.Add "==", eTokenType.tkEQU

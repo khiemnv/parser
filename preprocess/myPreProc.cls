@@ -7,6 +7,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+'fix parent SW
+
 Dim mtkz As myTokenizer
 Dim mDefined As Dictionary
 Dim mPathLst As Collection
@@ -43,21 +45,35 @@ Public Function RemoveSw(zFile)
     Set mLines = New Collection
     
     'parse file
-    Set tLst = readFile(zFile)
+    Set tLst = readFile2(zFile)
     filestep tLst
 End Function
 Private Function filestep(tLst)
     Dim tkLst As Collection
     mIncLvl = mIncLvl + 1
+    Dim tLine As myLineCode
     For Each tLine In tLst
-        Set tkLst = New Collection
-        mtkz.stepAll tLine.mTxt, tkLst
-        Set tk = tkLst(1)
-        If tk.mType = tkSharp Then
-            linestep tkLst
-        ElseIf mIncLvl > 1 Then
+        bAdd = True
+        If tLine.isComment Then
+            '//not parse
+        Else
+            Set tkLst = New Collection
+            mtkz.stepAll tLine.mTxt, tkLst
+            Set tk = tkLst(1)
+            If tk.mType = tkSharp Then
+                bAdd = False
+                linestep tkLst
+            End If
+        End If
+        
+        If mIncLvl > 1 Then
             'ignore include
+            bAdd = False
         ElseIf mCurSw Then
+            bAdd = False
+        End If
+        
+        If bAdd Then
             mLines.Add tLine
         End If
     Next
@@ -156,6 +172,13 @@ Private Function evalCnd(tkLst, iStart)
             Case tkNot, tkAnd, tkOr
                 reduce valLst, opLst, tk.mType
                 opLst.Add tk.mType
+            Case tkWord
+                '//#if 0
+                If tk.mTxt = "0" Then
+                    valLst.Add False
+                ElseIf tk.mTxt = "1" Then
+                    valLst.Add True
+                End If
         End Select
     Next
     reduce valLst, opLst, tkRBR
@@ -271,4 +294,41 @@ lSkip:
         lineNo = lineNo + 1
     Next
     Set readFile = tLst
+End Function
+
+Private Function readFile2(zFile)
+    Dim fso As New FileSystemObject
+    Set ts = fso.OpenTextFile(zFile)
+    zData = ts.ReadAll
+    n = ts.Line
+    ts.Close
+    
+    arr = Split(zData, vbCrLf)
+    assert (UBound(arr) = n - 1)
+    
+    'skip empty line
+    Dim tLine As myLineCode
+    
+    'remove comment
+    Dim reg2 As New RegExp
+    reg2.Pattern = "^([\s\t\n\r]|/\*.*\*/|//.*)+$"
+    
+    Dim reg As New RegExp
+    reg.Pattern = "^[\s\n\r\t]*$"
+    
+    lineNo = 1
+    Set tLst = New Collection
+    For Each zLine In arr
+        '//skip empty
+        If reg.Test(zLine) Then GoTo lSkip
+        
+        Set tLine = New myLineCode
+        tLine.mNo = lineNo
+        tLine.mTxt = zLine
+        tLine.isComment = reg2.Test(zLine)
+        tLst.Add tLine
+lSkip:
+        lineNo = lineNo + 1
+    Next
+    Set readFile2 = tLst
 End Function

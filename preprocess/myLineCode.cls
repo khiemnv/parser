@@ -9,3 +9,4 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Public mTxt As String
 Public mNo As Long
+Public isComment As Boolean
