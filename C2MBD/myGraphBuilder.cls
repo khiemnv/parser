@@ -66,7 +66,7 @@ Public Function refineGraph(graphObj)
         ElseIf tNode.mOutLst Is Nothing Then
             tNode.mType = eOut
         ElseIf tNode.mType <> eNone Then
-        ElseIf tNode.mInLst.Count + tNode.mOutLst.Count = 2 Then
+        ElseIf tNode.mInLst.Count = 1 And tNode.mOutLst.Count = 1 Then
             Set lNode = tNode.mInLst(1)
             Set rNode = tNode.mOutLst(1)
             rplNode rNode.mInLst, tNode, lNode
@@ -74,29 +74,13 @@ Public Function refineGraph(graphObj)
             tDict.Remove tNode.mId
         Else
             ' lnode -> tnode ->rnode[i]
+            assert (tNode.mInLst.Count = 1)
             Set lNode = tNode.mInLst(1)
-            Set rNode = tNode.mOutLst(1)
-            If lNode.mOutLst.Count = 1 Then
-                Set lNode.mOutLst = tNode.mOutLst
-                For Each rNode In tNode.mOutLst
-                    rplNode rNode.mInLst, tNode, lNode
-                Next
-                tDict.Remove tNode.mId
-            ElseIf rNode.mInLst.Count = 1 Then
-                Set rNode.mInLst = tNode.mInLst
-                For Each lNode In tNode.mInLst
-                    rplNode lNode.mOutLst, tNode, rNode
-                Next
-                tDict.Remove tNode.mId
-            Else
-                assert (reg.Test(tNode.mName))
-                assert (tNode.mInLst.Count = 1)
-                rplNodeLst lNode.mOutLst, tNode, tNode.mOutLst
-                For Each rNode In tNode.mOutLst
-                    rplNode rNode.mInLst, tNode, lNode
-                Next
-                tDict.Remove tNode.mId
-            End If
+            For Each rNode In tNode.mOutLst
+                rplNode rNode.mInLst, tNode, lNode
+                rplNode lNode.mOutLst, tNode, rNode
+            Next
+            tDict.Remove tNode.mId
         End If
     Next
     
@@ -110,12 +94,17 @@ Private Function rplNodeLst(tLst, oldNode, newNodeLst)
     Next
     tLst.Remove i
 End Function
+'if not found, append new node
 Private Function rplNode(tLst, oldNode, newNode)
     For i = 1 To tLst.Count
         If tLst(i) Is oldNode Then Exit For
     Next
-    tLst.Add newNode, after:=i
-    tLst.Remove i
+    If i > tLst.Count Then
+        tLst.Add newNode
+    Else
+        tLst.Add newNode, after:=i
+        tLst.Remove i
+    End If
 End Function
 Public Function printGraph(graphObj)
     Dim tDict As Dictionary
