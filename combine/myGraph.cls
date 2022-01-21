@@ -8,11 +8,12 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Public mDict  As Dictionary         'node dict
-Public mVarDict As Dictionary
-Public mPath As String
-Public mId As Long
 
 Private Sub Class_Initialize()
     Set mDict = New Dictionary
     Set mVarDict = New Dictionary
 End Sub
+Public Function buildGrp(tLnks)
+    
+End Function
+

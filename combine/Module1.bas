@@ -46,6 +46,38 @@ Sub mainxxx()
         iRow = iRow + 1
     Next
     
+    'export to file.m
+    Dim fso As New FileSystemObject
+    Dim ts As TextStream
+    zFout = fso.GetParentFolderName(zFile) & "\comb.m"
+    Set ts = fso.CreateTextFile(zFout, True)
+    ts.WriteLine "function comb()"
+    ts.WriteLine "sys = gcs;"
+    ts.WriteLine "baseIn = comb_exec('getBaseIn',sys);"
+    ts.WriteLine "baseOut = comb_exec('getBaseOut',sys);"
+    dy = 0
+    For Each zIn In inLst
+        zLine = Replace("comb_exec('addIn',sys,'<in>',baseIn + [0 <dy> 0 <dy>]);", "<dy>", dy)
+        ts.WriteLine Replace(zLine, "<in>", zIn)
+        dy = dy + 50
+    Next
+    dy = 0
+    For Each zOut In outLst
+        zLine = Replace("comb_exec('addOut',sys,'<out>',baseOut + [0 <dy> 0 <dy>]);", "<dy>", dy)
+        ts.WriteLine Replace(zLine, "<out>", zOut)
+        dy = dy + 50
+    Next
+    For Each rec In tLnks
+        zLine = Replace("comb_exe('addLine',sys,'<src>/<nsrc>','<des>/<ndes>');", "<src>", rec(0).mName)
+        zLine = Replace(zLine, "<nsrc>", rec(1))
+        zLine = Replace(zLine, "<des>", rec(2).mName)
+        ts.WriteLine Replace(zLine, "<ndes>", rec(3))
+    Next
+    ts.Close
+    
+    'build graph
+    Dim grp As New myGraph
+    Set tObj = grp.buildGrp(tLnks)
 End Sub
 Private Function crtGraph(tDict As Dictionary)
     Dim tInDict As New Dictionary
@@ -126,7 +158,7 @@ Private Function crtNodeDict(tLst)
     Dim tNode As myNode
     
     Dim reg As New RegExp
-    reg.Pattern = "_r\d$"
+    reg.Pattern = "_r\d$|_prev"
     
     For Each rec In tLst
         zFunc = rec(1)
@@ -144,7 +176,12 @@ Private Function crtNodeDict(tLst)
             tDict.Add zFunc, tNode
         End If
         If zInout = "in" Then
-            tNode.mInLst.Add Array(zSignal, tNode.mInLst.Count + 1)
+            If reg.Test(zSignal) Then
+                zOrg = reg.Replace(zSignal, "")
+                tNode.mInLst.Add Array(zOrg, tNode.mInLst.Count + 1)
+            Else
+                tNode.mInLst.Add Array(zSignal, tNode.mInLst.Count + 1)
+            End If
         Else
             If reg.Test(zSignal) Then
                 zOrg = reg.Replace(zSignal, "")
